@@ -1,36 +1,70 @@
-$("#registerForm").on('submit', function(e){
+$(function () {
+
+  const $form = $("#registerForm");
+  const $loading = $(".loading-overlay");
+  const $result = $("#result");
+
+  // Handle form submission
+  $form.on("submit", async function (e) {
     e.preventDefault();
 
-    $.ajax({
-        type: 'POST',
-        url: './core/signupController.php',
-        data: new FormData(this),
+    const formData = new FormData(this);
+
+    try {
+      const response = await $.ajax({
+        type: "POST",
+        url: "./core/signupController.php",
+        data: formData,
         contentType: false,
-        cache: false,
-        processData:false,
-        success: function(msg){
-            if(msg == 'ok'){
-                window.location = "core/home.html";
-            }else{
-                alert('Something went wrong');
-            }
-        }
-    });
-});
+        processData: false
+      });
 
-fetchUser(); 
+      if (response.trim() === "ok") {
+        window.location.href = "./home.html";
+      } else {
+        showError("Something went wrong");
+      }
 
-function fetchUser(){
-  let action = "Load";
-  $.ajax({
-   url : "../core/signupController.php", 
-   method:"POST", 
-   data:{action:action}, 
-   beforeSend: function () {
-        $('.loading-overlay').show();
-    },
-   success:function(data){
-        $('#result').html(data);  
-   }
+    } catch (error) {
+      console.error(error);
+      showError("Server error. Please try again.");
+    }
   });
-}
+
+  // Fetch users on load
+  fetchUser();
+
+  async function fetchUser() {
+    try {
+      $loading?.show();
+
+      const data = await $.ajax({
+        url: "./core/signupController.php",
+        method: "POST",
+        data: { action: "Load" }
+      });
+
+      $result.html(data);
+
+    } catch (error) {
+      console.error(error);
+      showError("Failed to load users");
+
+    } finally {
+      $loading?.hide();
+    }
+  }
+
+  function showError(message) {
+    const toast = $(`
+        <div class="toast align-items-center text-bg-danger border-0 show position-fixed bottom-0 end-0 m-3">
+          <div class="d-flex">
+              <div class="toast-body">${message}</div>
+              <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>
+          </div>
+        </div>
+    `);
+    $("body").append(toast);
+  }
+
+});
